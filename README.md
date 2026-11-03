@@ -43,7 +43,7 @@ docker compose logs -f
 docker compose run --rm rocketsmbd --check
 ```
 
-可覆盖的环境变量：`IMAGE_NAME`、`IMAGE_TAG`、`SMB_PORT`、`SHARE_HOST_PATH`。
+可覆盖的环境变量：`IMAGE_NAME`（默认 `ghcr.io/ytx-zhang/rocketsmbd`）、`IMAGE_TAG`、`SMB_PORT`、`SHARE_HOST_PATH`。
 
 ## 注意
 
