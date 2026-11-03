@@ -14,7 +14,7 @@ sqpoll = false               # 高 IOPS 场景再开
 
 oplocks = true               # 读/句柄缓存租约
 
-require_signing = true       # 拒绝已认证会话的未签名请求
+require_signing = false      # 关掉 SMB 签名省 CPU（局域网用；公网/多租户建议开）
 encrypt = false              # true = 强制 SMB3 加密，大文件会掉速
 prefer_aes256 = true
 allow_guest = false          # 有 [[user]] 时本就要求认证，这里显式关掉匿名
