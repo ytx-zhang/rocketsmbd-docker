@@ -18,7 +18,8 @@ services:
     # root 自带 CAP_NET_BIND_SERVICE + CAP_DAC_OVERRIDE，所以不需要 cap_add。
     # 要降权的话：chown 共享目录后加 user: "1000:1000" 和 cap_add: [NET_BIND_SERVICE]
 
-    # 启动报 "io_uring is unavailable: Operation not permitted" 时，先看宿主机
-    # `cat /proc/sys/kernel/io_uring_disabled`（必须是 0），再放开下面的 seccomp：
-    # security_opt:
-    #   - seccomp:unconfined
+    # io_uring 需要放开 Docker 默认 seccomp（否则启动即报 Operation not permitted）。
+    # 默认开启；若已在宿主机 sysctl 层放开且 Docker 版本较新，可删掉这两行。
+    # 想保留隔离可以用只放行 io_uring_setup/enter/register 的自定义 profile 替代 unconfined。
+    security_opt:
+      - seccomp:unconfined
