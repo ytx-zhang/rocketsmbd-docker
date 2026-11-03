@@ -1,0 +1,1 @@
+# 共享目录（容器内 /srv/data，对应 config/rocketsmbd.toml 的 share path）

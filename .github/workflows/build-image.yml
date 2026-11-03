@@ -1,0 +1,126 @@
+name: build-image
+
+# 每天检查上游 release，有新版本就构建并推送；也可以手动触发
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "指定上游版本，留空则用最新 release（例如 1.4.1）"
+        required: false
+      force:
+        description: "该版本镜像已存在时强制重建"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  UPSTREAM_REPO: glennswest/rocketsmbd
+  # 默认推 GHCR。想推 Docker Hub：仓库 Variables 设 IMAGE_NAME=docker.io/<用户名>/rocketsmbd
+  # 并配置 secrets.REGISTRY_USERNAME / secrets.REGISTRY_PASSWORD
+  IMAGE_NAME: ${{ vars.IMAGE_NAME || format('ghcr.io/{0}/rocketsmbd', github.repository_owner) }}
+  PLATFORMS: linux/amd64,linux/arm64
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 解析上游最新版本
+        id: ver
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          INPUT_VERSION: ${{ inputs.version }}
+        run: |
+          set -euo pipefail
+          latest=$(curl -fsSL \
+            -H "Authorization: Bearer ${GH_TOKEN}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${UPSTREAM_REPO}/releases/latest" | jq -r '.tag_name')
+          latest="${latest#v}"
+          version="${INPUT_VERSION:-$latest}"
+          version="${version#v}"
+          [ -n "$version" ] || { echo "无法解析上游版本" >&2; exit 1; }
+          echo "latest=$latest" >> "$GITHUB_OUTPUT"
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "上游最新: $latest / 本次构建: $version"
+
+      - name: 登录镜像仓库
+        run: |
+          set -euo pipefail
+          registry="${IMAGE_NAME%%/*}"
+          case "$registry" in
+            *.*|*:*|localhost) ;;
+            *) registry=docker.io ;;
+          esac
+          if [ "$registry" = "ghcr.io" ]; then
+            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+          else
+            if [ -z "${{ secrets.REGISTRY_USERNAME }}" ]; then
+              echo "推送到 ${registry} 需要配置 secrets.REGISTRY_USERNAME / REGISTRY_PASSWORD" >&2
+              exit 1
+            fi
+            echo "${{ secrets.REGISTRY_PASSWORD }}" | docker login "$registry" -u "${{ secrets.REGISTRY_USERNAME }}" --password-stdin
+          fi
+
+      - name: 检查该版本镜像是否已存在
+        id: exist
+        run: |
+          set -euo pipefail
+          if [ "${{ inputs.force }}" = "true" ]; then
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if docker buildx imagetools inspect "${IMAGE_NAME}:${{ steps.ver.outputs.version }}" >/dev/null 2>&1; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "${IMAGE_NAME}:${{ steps.ver.outputs.version }} 已存在，跳过"
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: 生成 tag（版本号 + 最新版打 latest）
+        id: tags
+        if: steps.exist.outputs.exists != 'true'
+        run: |
+          set -euo pipefail
+          v="${{ steps.ver.outputs.version }}"
+          {
+            echo "tags<<EOF"
+            echo "${IMAGE_NAME}:${v}"
+            if [ "$v" = "${{ steps.ver.outputs.latest }}" ]; then
+              echo "${IMAGE_NAME}:latest"
+            fi
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@v3
+        if: steps.exist.outputs.exists != 'true'
+
+      - name: 构建并推送 linux/amd64 + linux/arm64
+        if: steps.exist.outputs.exists != 'true'
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          platforms: ${{ env.PLATFORMS }}
+          push: true
+          tags: ${{ steps.tags.outputs.tags }}
+          build-args: |
+            ROCKETSMBD_VERSION=${{ steps.ver.outputs.version }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: 输出摘要
+        if: steps.exist.outputs.exists != 'true'
+        run: |
+          {
+            echo "### rocketsmbd ${{ steps.ver.outputs.version }}"
+            echo ""
+            echo '```'
+            echo "${{ steps.tags.outputs.tags }}"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"

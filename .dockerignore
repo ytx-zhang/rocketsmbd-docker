@@ -1,0 +1,7 @@
+.git
+.github
+data
+compose.yaml
+config
+*.log
+README.md
