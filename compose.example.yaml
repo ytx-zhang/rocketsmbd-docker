@@ -23,5 +23,3 @@ services:
     # 若启动即报 io_uring EPERM（部分默认 seccomp 会拦），放开这个：
     # security_opt:
     #   - seccomp:unconfined
-
-    stop_grace_period: 10s
