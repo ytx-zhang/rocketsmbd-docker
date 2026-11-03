@@ -49,7 +49,7 @@ docker compose run --rm rocketsmbd --check
 ## 注意
 
 - 必须在 Linux 上跑：需要内核 ≥ 5.15 且开启 io_uring（推荐 ≥ 6.0），否则启动即退出
-- Docker 默认 seccomp 不含 `io_uring_setup`，所以 compose 里挂 `seccomp-io_uring.json`（官方默认 profile + 只放行 `io_uring_setup`/`io_uring_enter`/`io_uring_register`）；该文件要和 `compose.yaml` 同目录
+- Docker 默认 seccomp 白名单里没有 `io_uring_setup`，compose 用 `seccomp:unconfined` 放开；想收紧可改挂同目录的 `seccomp-io_uring.json`（官方白名单 + 3 个 io_uring syscall，不用改内容）
 - scratch 镜像里没有 `/etc/passwd`，容器默认就是 root；root 自带 `CAP_NET_BIND_SERVICE` 和 `CAP_DAC_OVERRIDE`，所以 compose 里不用写 `cap_add`。要降权成非 root 才需要 `cap_add: [NET_BIND_SERVICE]` 并 chown 共享目录
 - `core_pinning` 在容器里默认关掉，`--cpuset-cpus` 不连续时绑核会失败
 - 只支持 SMB 2.0.2 ~ 3.1.1，不支持 SMB1/139 端口；1.4.x 只有 NTLMv2，无 Kerberos
