@@ -1,7 +1,7 @@
 # 本地部署文件，按需求不上传 GitHub
 compose.yaml
 .env
-config/rocketsmbd.toml
+rocketsmbd.toml
 data/*
 !data/.gitkeep
 

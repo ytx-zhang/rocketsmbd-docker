@@ -28,11 +28,13 @@ ghcr.io/<owner>/rocketsmbd:latest
 
 ## 本地部署
 
-`compose.yaml` 和 `config/rocketsmbd.toml` 是本地自用文件，已在 `.gitignore` 里，不会上传。
+`compose.yaml` 和 `rocketsmbd.toml` 是本地自用文件，已在 `.gitignore` 里，不会上传。
+
+compose 用 host 网络，直接监听宿主机 445；共享目录挂到容器内 `/mnt`，配置文件从当前目录单文件挂载到 `/etc/rocketsmbd/rocketsmbd.toml`。
 
 ```bash
 mkdir -p data
-# 改 config/rocketsmbd.toml 里的 server_name、用户名密码、共享路径
+# 改 rocketsmbd.toml 里的 server_name、用户名密码
 docker compose up -d
 docker compose logs -f
 ```
@@ -43,15 +45,15 @@ docker compose logs -f
 docker compose run --rm rocketsmbd --check
 ```
 
-可覆盖的环境变量：`IMAGE_NAME`（默认 `ghcr.io/ytx-zhang/rocketsmbd`）、`IMAGE_TAG`、`SMB_PORT`、`SHARE_HOST_PATH`。
+可覆盖的环境变量：`IMAGE_NAME`（默认 `ghcr.io/ytx-zhang/rocketsmbd`）、`IMAGE_TAG`、`SHARE_HOST_PATH`。
 
 ## 注意
 
 - 必须在 Linux 上跑：需要内核 ≥ 5.15 且开启 io_uring（推荐 ≥ 6.0），否则启动即退出
-- 容器内以 root + `CAP_NET_BIND_SERVICE` + `CAP_DAC_OVERRIDE` 运行（上游 1.4.x 的行为）
+- scratch 镜像里没有 `/etc/passwd`，容器默认就是 root；root 自带 `CAP_NET_BIND_SERVICE` 和 `CAP_DAC_OVERRIDE`，所以 compose 里不用写 `cap_add`。要降权成非 root 才需要 `cap_add: [NET_BIND_SERVICE]` 并 chown 共享目录
 - `core_pinning` 在容器里默认关掉，`--cpuset-cpus` 不连续时绑核会失败
 - 只支持 SMB 2.0.2 ~ 3.1.1，不支持 SMB1/139 端口；1.4.x 只有 NTLMv2，无 Kerberos
-- 端口被宿主 SMB 占用时，用 `SMB_PORT` 改宿主端口
+- host 网络下宿主 445 必须空着（宿主 Samba/cifs 服务要先停），冲突时改配置里的 `listen`
 
 ## 本地手动构建
 
