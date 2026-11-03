@@ -2,6 +2,8 @@
 .github
 data
 compose.yaml
+compose.example.yaml
 rocketsmbd.toml
+rocketsmbd.toml.example
 *.log
 README.md

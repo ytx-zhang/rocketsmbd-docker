@@ -9,8 +9,8 @@
 - tag：跟随上游版本号 + `latest`
 
 ```
-ghcr.io/<owner>/rocketsmbd:1.4.1
-ghcr.io/<owner>/rocketsmbd:latest
+ghcr.io/ytx-zhang/rocketsmbd:1.4.1
+ghcr.io/ytx-zhang/rocketsmbd:latest
 ```
 
 想要 Docker Hub：仓库 Settings → Variables 加 `IMAGE_NAME=docker.io/<用户名>/rocketsmbd`，再配 `secrets.REGISTRY_USERNAME` / `secrets.REGISTRY_PASSWORD`。
@@ -28,24 +28,23 @@ ghcr.io/<owner>/rocketsmbd:latest
 
 ## 本地部署
 
-`compose.yaml` 和 `rocketsmbd.toml` 是本地自用文件，已在 `.gitignore` 里，不会上传。
-
-compose 用 host 网络，直接监听宿主机 445；共享目录挂到容器内 `/mnt`，配置文件从当前目录单文件挂载到 `/etc/rocketsmbd/rocketsmbd.toml`。
+仓库里带两份示例：`compose.example.yaml`（部署编排）和 `rocketsmbd.toml.example`（服务端配置）。实际使用的 `compose.yaml` / `rocketsmbd.toml` 在 `.gitignore` 里，不会上传。
 
 ```bash
-mkdir -p data
+cp compose.example.yaml compose.yaml
+cp rocketsmbd.toml.example rocketsmbd.toml
 # 改 rocketsmbd.toml 里的 server_name、用户名密码
 docker compose up -d
 docker compose logs -f
 ```
+
+compose 用 host 网络直接监听宿主机 445，宿主机 `/mnt` 原样挂到容器 `/mnt`（与配置里 share 的 `path` 一致），配置文件单文件挂载到 `/etc/rocketsmbd/rocketsmbd.toml`。
 
 校验配置（镜像里没有 shell，只能这样排障）：
 
 ```bash
 docker compose run --rm rocketsmbd --check
 ```
-
-可覆盖的环境变量：`IMAGE_NAME`（默认 `ghcr.io/ytx-zhang/rocketsmbd`）、`IMAGE_TAG`、`SHARE_HOST_PATH`。
 
 ## 注意
 

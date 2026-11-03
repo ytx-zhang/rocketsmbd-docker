@@ -1,0 +1,33 @@
+# 用法：cp compose.example.yaml compose.yaml，按需改镜像 tag / 挂载路径
+name: rocketsmbd
+
+services:
+  rocketsmbd:
+    image: ghcr.io/ytx-zhang/rocketsmbd:latest
+    container_name: rocketsmbd
+    restart: always
+
+    # host 网络：直接监听宿主机 445，客户端看到真实源地址
+    network_mode: host
+
+    volumes:
+      # 配置文件单文件挂载到镜像内的固定路径；宿主机文件不存在时 Docker 会建成目录
+      - ./rocketsmbd.toml:/etc/rocketsmbd/rocketsmbd.toml:ro
+      # 共享目录：宿主机 /mnt → 容器 /mnt，需与 rocketsmbd.toml 里 share 的 path 一致
+      - /mnt:/mnt
+
+    # scratch 镜像里没有 /etc/passwd，默认就是 root；
+    # root 自带 CAP_NET_BIND_SERVICE + CAP_DAC_OVERRIDE，所以不需要 cap_add。
+    # 要降权的话：chown 共享目录后加 user: "1000:1000" 和 cap_add: [NET_BIND_SERVICE]
+
+    # 若启动即报 io_uring EPERM（部分默认 seccomp 会拦），放开这个：
+    # security_opt:
+    #   - seccomp:unconfined
+
+    stop_grace_period: 10s
+
+    logging:
+      driver: json-file
+      options:
+        max-size: 10m
+        max-file: "3"

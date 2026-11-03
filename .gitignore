@@ -2,8 +2,6 @@
 compose.yaml
 .env
 rocketsmbd.toml
-data/*
-!data/.gitkeep
 
 *.log
 .DS_Store

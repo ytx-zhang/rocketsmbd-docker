@@ -1,0 +1,30 @@
+# rocketsmbd 示例配置（对应 1.4.x 支持的键）
+# 用法：cp rocketsmbd.toml.example rocketsmbd.toml，然后改 server_name / 用户 / 共享路径
+#
+# 注意：所有顶层键必须写在第一个 [[share]] 之前，未知键会被直接拒绝。
+# 校验：docker compose run --rm rocketsmbd --check
+
+listen = "0.0.0.0:445"
+workers = 0                  # 0 = 每核一个 worker（各自独立 io_uring）
+server_name = "ROCKETSMBD"   # 客户端看到的服务名，建议改成宿主机名
+log_level = 1                # 0=warn 1=info 2=debug
+
+core_pinning = false         # 容器内 cpuset 可能不连续，绑核易失败；裸机建议 true
+sqpoll = false               # 高 IOPS 场景再开
+
+oplocks = true               # 读/句柄缓存租约
+
+require_signing = true       # 拒绝已认证会话的未签名请求
+encrypt = false              # true = 强制 SMB3 加密，大文件会掉速
+prefer_aes256 = true
+allow_guest = false          # 有 [[user]] 时本就要求认证，这里显式关掉匿名
+
+[[share]]
+name = "data"
+path = "/mnt"                # 与 compose 里 /mnt:/mnt 的容器内路径一致
+read_only = false
+
+# 仅支持 NTLMv2：password 或 nt_hash（32 位十六进制）二选一
+[[user]]
+name = "smb"
+password = "changeme"        # 部署前务必修改
