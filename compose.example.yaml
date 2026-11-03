@@ -18,6 +18,7 @@ services:
     # root 自带 CAP_NET_BIND_SERVICE + CAP_DAC_OVERRIDE，所以不需要 cap_add。
     # 要降权的话：chown 共享目录后加 user: "1000:1000" 和 cap_add: [NET_BIND_SERVICE]
 
-    # 若启动即报 io_uring EPERM（部分默认 seccomp 会拦），放开这个：
+    # 启动报 "io_uring is unavailable: Operation not permitted" 时，先看宿主机
+    # `cat /proc/sys/kernel/io_uring_disabled`（必须是 0），再放开下面的 seccomp：
     # security_opt:
     #   - seccomp:unconfined
