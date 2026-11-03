@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 
-# 上游版本，CI 通过 --build-arg 覆盖；本地构建也会自动取最新 release
+# 上游版本，CI 通过 --build-arg 覆盖
 ARG ROCKETSMBD_VERSION=1.4.1
 
 # ---------- 阶段 1：取官方发布的静态 musl 二进制 ----------
@@ -12,20 +12,13 @@ ARG TARGETARCH
 # 可选 GitHub 加速前缀，例如 --build-arg GITHUB_MIRROR=https://ghfast.top
 ARG GITHUB_MIRROR=""
 
-RUN set -eux; \
-    case "$TARGETARCH" in \
-      amd64) arch=x86_64 ;; \
-      arm64) arch=aarch64 ;; \
-      *) echo "unsupported TARGETARCH=$TARGETARCH (upstream only ships x86_64/aarch64)" >&2; exit 1 ;; \
-    esac; \
-    asset="rocketsmbd-\${arch}-linux-musl"; \
-    base="${GITHUB_MIRROR}https://github.com/glennswest/rocketsmbd/releases/download/v${ROCKETSMBD_VERSION}"; \
-    cd /tmp; \
-    wget -q -O "\$asset" "\$base/\$asset"; \
-    wget -q -O SHA256SUMS.txt "\$base/SHA256SUMS.txt"; \
-    grep -E "[[:space:]]\${asset}\$" SHA256SUMS.txt | sha256sum -c -; \
-    mkdir -p /out; \
-    install -m 0755 "\$asset" /out/rocketsmbd
+# 下载/校验逻辑放在脚本里，避免 Dockerfile 对 $ 的转义把 shell 变量变成字面量
+ENV ROCKETSMBD_VERSION=${ROCKETSMBD_VERSION} \
+    TARGETARCH=${TARGETARCH} \
+    GITHUB_MIRROR=${GITHUB_MIRROR}
+
+COPY scripts/fetch.sh /fetch.sh
+RUN sh /fetch.sh
 
 # ---------- 阶段 2：scratch 空镜像 ----------
 FROM scratch
