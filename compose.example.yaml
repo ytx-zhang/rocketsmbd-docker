@@ -25,9 +25,3 @@ services:
     #   - seccomp:unconfined
 
     stop_grace_period: 10s
-
-    logging:
-      driver: json-file
-      options:
-        max-size: 10m
-        max-file: "3"
