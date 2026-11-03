@@ -1,6 +1,4 @@
 # 用法：cp compose.example.yaml compose.yaml，按需改镜像 tag / 挂载路径
-name: rocketsmbd
-
 services:
   rocketsmbd:
     image: ghcr.io/ytx-zhang/rocketsmbd:latest
