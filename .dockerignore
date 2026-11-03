@@ -3,7 +3,6 @@
 data
 compose.yaml
 compose.example.yaml
-seccomp-io_uring.json
 rocketsmbd.toml
 rocketsmbd.toml.example
 *.log

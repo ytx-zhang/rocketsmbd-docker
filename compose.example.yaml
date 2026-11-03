@@ -18,8 +18,6 @@ services:
     # root 自带 CAP_NET_BIND_SERVICE + CAP_DAC_OVERRIDE，所以不需要 cap_add。
     # 要降权的话：chown 共享目录后加 user: "1000:1000" 和 cap_add: [NET_BIND_SERVICE]
 
-    # Docker 默认 seccomp 白名单里没有 io_uring_setup，不放开就会报 EPERM 启动失败。
-    # 想最小权限：换成 - seccomp:./seccomp-io_uring.json（官方白名单 + 3 个 io_uring syscall，
-    # 需与 compose 文件放同一目录）
+    # Docker 默认 seccomp 白名单里没有 io_uring_setup，不放开就会报 EPERM 启动失败
     security_opt:
       - seccomp:unconfined
